@@ -22,16 +22,35 @@ export default {
     }
   },
   mounted() {
-    fetch('http://localhost:8888/PFR/Memory/backend/?loc=projects&action=list') // ton API MAMP
-      .then(response => response.json())
-      .then(data => {
+    this.loadProjects();
+  },
+
+  methods: {
+    async loadProjects() {
+      console.log('Chargement des projets...');
+      this.loading = true;
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8888/PFR/Memory/backend/';
+      const endpoint = `${baseUrl}?loc=projects&action=list`;
+      try {
+        const response = await fetch(endpoint);
+        console.log('Réponse projets:', response.status);
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('Projets chargés:', data);
+        if (!Array.isArray(data)) {
+          throw new Error('Format inattendu: la réponse doit être un tableau de projets');
+        }
         this.projects = data;
+      } catch (error) {
+        console.error('Erreur chargement projets:', error);
+      } finally {
         this.loading = false;
-      })
-      .catch(error => {
-        console.error('Erreur :', error);
-        this.loading = false;
-      });
+      }
+    }
   }
 }
 </script>
