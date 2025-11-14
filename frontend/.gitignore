@@ -34,3 +34,6 @@ coverage
 
 # Vitest
 __screenshots__/
+
+# Local environment variables (do not commit)
+.env
