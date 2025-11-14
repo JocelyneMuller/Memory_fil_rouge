@@ -4,11 +4,17 @@
       <h1>Gestion des Projets Memory</h1>
     </header>
     
-    <!-- Formulaire de création -->
-    <ProjectForm @projectCreated="onProjectCreated" />
-    
-    <!-- Liste des projets -->
-    <ProjectList :key="refreshKey" />
+    <div class="content-wrapper">
+      <!-- Formulaire de création -->
+      <aside class="sidebar">
+        <ProjectForm @projectCreated="onProjectCreated" />
+      </aside>
+      
+      <!-- Liste des projets -->
+      <main class="main-content">
+        <ProjectList :key="refreshKey" />
+      </main>
+    </div>
   </div>
 </template>
 
@@ -30,7 +36,6 @@ export default {
   
   methods: {
     onProjectCreated(result) {
-      // Rafraîchit la liste des projets après création
       this.refreshKey++;
       console.log('Nouveau projet créé:', result);
     }
@@ -39,21 +44,59 @@ export default {
 </script>
 
 <style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 #app {
-  font-family: Arial, sans-serif;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  min-height: 100vh;
+  background-color: #f5f5f5;
 }
 
 header {
+  background-color: #fff;
+  border-bottom: 2px solid #000;
+  padding: 20px;
   text-align: center;
-  margin-bottom: 30px;
 }
 
 header h1 {
-  color: #2c3e50;
-  border-bottom: 2px solid #3498db;
-  padding-bottom: 10px;
+  font-size: 28px;
+  font-weight: bold;
+  color: #000;
+}
+
+.content-wrapper {
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  gap: 30px;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 30px;
+}
+
+.sidebar {
+  position: sticky;
+  top: 30px;
+  height: fit-content;
+}
+
+.main-content {
+  min-width: 0;
+}
+
+/* Responsive : empiler verticalement sur mobile */
+@media (max-width: 1024px) {
+  .content-wrapper {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .sidebar {
+    position: static;
+  }
 }
 </style>
