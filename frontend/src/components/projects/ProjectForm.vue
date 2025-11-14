@@ -165,12 +165,18 @@ export default {
 
 <style scoped>
 .project-form {
-  max-width: 600px;
-  margin: 20px auto;
-  padding: 20px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background-color: #f9f9f9;
+  background-color: #fff;
+  padding: 25px;
+  border: 2px solid #000;
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.project-form h2 {
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #000;
 }
 
 .form-group {
@@ -185,10 +191,16 @@ label {
 
 input, textarea, select {
   width: 100%;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 14px;
+  padding: 10px 14px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 15px;
+  transition: border-color 0.2s ease;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: #FF6B5B;
 }
 
 textarea {
@@ -196,22 +208,30 @@ textarea {
 }
 
 .submit-btn {
-  background-color: #007bff;
+  background-color: #FF6B5B;
   color: white;
-  padding: 10px 20px;
+  padding: 12px 28px;
   border: none;
-  border-radius: 4px;
+  border-radius: 20px;
   cursor: pointer;
   font-size: 16px;
+  font-weight: 600;
+  transition: all 0.2s ease;
 }
 
 .submit-btn:hover {
-  background-color: #0056b3;
+  background-color: #ff5545;
+  transform: scale(1.05);
+}
+
+.submit-btn:active {
+  transform: scale(0.98);
 }
 
 .submit-btn:disabled {
-  background-color: #6c757d;
+  background-color: #ccc;
   cursor: not-allowed;
+  transform: none;
 }
 
 .message {
