@@ -30,7 +30,7 @@ public function run (){
         case 'list':
             return $this->listProjects();
         case 'show' :
-            $id = filter_input(INPUT_GET, 'id');
+            $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
             return $this->show($id);
         case 'create':
             return $this->createProject();
@@ -41,15 +41,20 @@ public function run (){
     }
 }
 
+/**
+ * Afficher un projet spécifique par son ID
+ * 
+ * @param int|false|null $id ID du projet (peut être false si validation échoue)
+ * @return array Données du projet ou erreur
+ */
 public function show($id)
 {
-    if ($id) {
-                $model = new Projects_model($this->PDO);
-                return $model->getProjectById($id);
-            } else {
-                return ['error' => 'Project ID is required'];
-            }
-
+    if ($id && is_int($id)) {
+        $model = new Projects_model($this->PDO);
+        return $model->getProjectById($id);
+    } else {
+        return ['error' => 'Project ID is required and must be valid'];
+    }
 }
 
 /**
