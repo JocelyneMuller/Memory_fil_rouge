@@ -543,26 +543,413 @@ Le projet dispose de plusieurs documentations :
 ## 🎯 **Prochaines étapes recommandées**
 
 ### **Court terme :**
-1. ✅ Archivage des projets (FAIT)
-2. ✅ Tests PHPUnit (FAIT)
-3. ⏳ Interface frontend pour archiver (bouton dans `ProjectList.vue`)
-4. ⏳ Filtrage projets actifs/archivés (endpoints `&status=active|archived`)
+1. ✅ Archivage des projets (FAIT - 13/11/2025)
+2. ✅ Tests PHPUnit (FAIT - 13/11/2025)
+3. ✅ Interface frontend pour archiver (FAIT - 14/11/2025)
+4. ✅ Filtrage projets actifs/archivés (FAIT - 14/11/2025)
+5. ⏳ JOIN Category pour afficher noms dans cartes (À FAIRE)
+6. ⏳ Finitions CSS et responsive (À FAIRE)
 
 ### **Moyen terme :**
-5. ⏳ Désarchivage (remettre `Archive_date` à `NULL`)
-6. ⏳ Implémentation controllers vides (`competences.php`, `notes.php`)
-7. ⏳ Tests frontend (Vitest pour `ProjectForm`, `ProjectList`)
+7. ⏳ Désarchivage (remettre `Archive_date` à `NULL`)
+8. ⏳ JOIN Manage + Competence pour afficher dans cartes
+9. ⏳ Implémentation controllers vides (`competences.php`, `notes.php`)
+10. ⏳ Tests frontend (Vitest pour `ProjectForm`, `ProjectList`)
 
 ### **Long terme :**
-8. ⏳ Authentification JWT + sessions
-9. ⏳ Variables d'environnement (`.env` pour credentials DB)
-10. ⏳ CI/CD (GitHub Actions pour tests automatiques)
-11. ⏳ Déploiement production (OVH/Ionos)
+11. ⏳ Authentification JWT + sessions
+12. ⏳ Variables d'environnement (`.env` pour credentials DB)
+13. ⏳ CI/CD (GitHub Actions pour tests automatiques)
+14. ⏳ Déploiement production (OVH/Ionos)
+
+---
+
+## 📱 **Implémentation de l'interface utilisateur (14 novembre 2025)**
+
+### **A. Vue d'ensemble**
+
+**Objectif :** Créer une interface moderne et intuitive pour gérer l'archivage des projets.
+
+**Composants développés :**
+- `ConfirmModal.vue` : Modal de confirmation réutilisable
+- `ProjectList.vue` : Grille de projets avec filtres et archivage
+- `ProjectForm.vue` : Amélioration du style (bouton rouge-corail)
+- `App.vue` : Restructuration layout en grid
+
+---
+
+### **B. ConfirmModal.vue - Modal personnalisée**
+
+**Emplacement :** `frontend/src/components/ui/ConfirmModal.vue`
+
+**Justification technique :**
+Plutôt que d'utiliser `confirm()` natif du navigateur (non stylable, oldschool), nous avons créé une modal personnalisée respectant la charte graphique du projet.
+
+**Fonctionnalités clés :**
+```vue
+<!-- Props -->
+show: Boolean         // Contrôle affichage
+title: String         // Titre personnalisable
+message: String       // Message de confirmation
+confirmText: String   // Texte bouton (défaut: "Confirmer")
+
+<!-- Events -->
+@confirm  // Émis quand utilisateur confirme
+@cancel   // Émis quand utilisateur annule
+```
+
+**Caractéristiques UX :**
+- Overlay sombre avec `backdrop-filter: blur(2px)`
+- Animation d'entrée/sortie (`@keyframes scaleIn`)
+- Fermeture via Escape (`addEventListener('keydown')`)
+- Click hors modal pour fermer (`@click.self="cancel"`)
+- Boutons contrastés : gris (annuler) vs rouge-corail (confirmer)
+
+**Code clé - Gestion Escape :**
+```javascript
+mounted() {
+  document.addEventListener('keydown', this.handleEscape);
+},
+
+unmounted() {
+  document.removeEventListener('keydown', this.handleEscape);
+},
+
+methods: {
+  handleEscape(event) {
+    if (event.key === 'Escape' && this.show) {
+      this.cancel();
+    }
+  }
+}
+```
+
+---
+
+### **C. ProjectList.vue - Grille avec filtres**
+
+**Enrichissement majeur du composant avec 580 lignes de code.**
+
+#### **1. Système de filtrage réactif**
+
+**Implémentation :**
+```javascript
+data() {
+  return {
+    filterStatus: 'all'  // 'all' | 'active' | 'archived'
+  }
+},
+
+computed: {
+  filteredProjects() {
+    if (this.filterStatus === 'active') {
+      return this.projects.filter(p => !p.Archive_date);
+    } else if (this.filterStatus === 'archived') {
+      return this.projects.filter(p => p.Archive_date);
+    }
+    return this.projects;
+  },
+  
+  allProjectsCount() {
+    return this.projects.length;
+  },
+  
+  activeProjectsCount() {
+    return this.projects.filter(p => !p.Archive_date).length;
+  },
+  
+  archivedProjectsCount() {
+    return this.projects.filter(p => p.Archive_date).length;
+  }
+}
+```
+
+**Avantage :** Filtrage côté client instantané, pas de requête API supplémentaire.
+
+---
+
+#### **2. Grille responsive CSS Grid**
+
+**Implémentation :**
+```css
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 30px;
+}
+
+@media (max-width: 968px) {
+  .projects-grid {
+    grid-template-columns: 1fr;
+  }
+}
+```
+
+**Justification :**
+- CSS Grid plus moderne que Flexbox pour layouts 2D
+- Gap uniforme entre éléments
+- Responsive naturel avec media queries
+
+---
+
+#### **3. Gestion de l'état archivé**
+
+**Affichage conditionnel dans template :**
+```vue
+<div class="card-footer">
+  <!-- Si projet archivé : badge avec date -->
+  <span v-if="project.Archive_date" class="badge badge-archived">
+    Archivé le {{ formatDate(project.Archive_date) }}
+  </span>
+  
+  <!-- Si projet actif : bouton archiver -->
+  <button v-else @click="showArchiveConfirm(project)" class="btn-archive">
+    Archiver
+  </button>
+</div>
+```
+
+**Formatage des dates :**
+```javascript
+formatDate(sqlDate) {
+  if (!sqlDate) return '';
+  const [year, month, day] = sqlDate.split('-');
+  return `${day}/${month}/${year}`;  // YYYY-MM-DD → DD/MM/YYYY
+}
+```
+
+---
+
+#### **4. Workflow d'archivage**
+
+**Étapes du processus :**
+1. Utilisateur clique sur "Archiver"
+2. `showArchiveConfirm(project)` → stocke projet et affiche modal
+3. Utilisateur clique "Archiver" dans modal
+4. `confirmArchive()` → appel API GET `?loc=projects&action=archivate&id={id}`
+5. Si succès → message vert + `loadProjects()` (refresh)
+6. Si erreur → message rouge avec détails
+
+**Code de l'appel API :**
+```javascript
+async confirmArchive() {
+  this.showModal = false;
+  
+  try {
+    const baseUrl = import.meta.env.VITE_API_URL || 
+                    'http://localhost:8888/PFR/Memory/backend/';
+    const endpoint = `${baseUrl}?loc=projects&action=archivate&id=${projectId}`;
+    
+    const response = await fetch(endpoint, { method: 'GET' });
+    const result = await response.json();
+
+    if (result.success) {
+      this.showMessage(`Projet "${projectName}" archivé avec succès.`, 'success');
+      await this.loadProjects();  // Recharge la liste
+    } else {
+      this.showMessage(`Erreur : ${result.error}`, 'error');
+    }
+  } catch (error) {
+    this.showMessage('Erreur de communication avec le serveur', 'error');
+  }
+}
+```
+
+---
+
+### **D. App.vue - Layout moderne**
+
+**Ancien design :** Empilement vertical (formulaire puis liste)
+
+**Nouveau design :** Grid sidebar + main content
+
+**Implémentation :**
+```vue
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <ProjectForm @projectCreated="onProjectCreated" />
+  </aside>
+  
+  <main class="main-content">
+    <ProjectList :key="refreshKey" />
+  </main>
+</div>
+```
+
+**CSS Grid :**
+```css
+.content-wrapper {
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  gap: 30px;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 30px;
+}
+
+.sidebar {
+  position: sticky;  /* Reste visible au scroll */
+  top: 30px;
+  height: fit-content;
+}
+```
+
+**Avantages :**
+- Formulaire toujours visible (sticky)
+- Utilisation optimale de l'écran large
+- Séparation claire création/consultation
+
+---
+
+### **E. Charte graphique appliquée**
+
+**Analyse de la maquette :** `conception/Maquette/Projects.png`
+
+**Palette de couleurs identifiée :**
+```css
+:root {
+  --primary-coral: #FF6B5B;      /* Boutons, actions, filtres actifs */
+  --primary-coral-hover: #ff5545; /* Hover état */
+  --border-dark: #000;            /* Bordures cartes, badges */
+  --bg-card: #fff;                /* Fond cartes */
+  --bg-page: #f5f5f5;             /* Fond page */
+  --text-primary: #000;           /* Titres */
+  --text-secondary: #333;         /* Descriptions */
+}
+```
+
+**Design tokens appliqués :**
+| Token | Valeur | Usage |
+|-------|--------|-------|
+| `border-radius-card` | 20px | Cartes, formulaires |
+| `border-radius-button` | 20px | Boutons, badges pills |
+| `border-width` | 2px | Bordures principales |
+| `spacing-card` | 30px | Gap entre cartes |
+| `padding-card` | 25px | Padding interne cartes |
+
+**Avant/Après - Bouton de création :**
+```css
+/* AVANT (incohérent) */
+.submit-btn {
+  background-color: #007bff;  /* Bleu */
+  border-radius: 4px;
+}
+
+/* APRÈS (cohérent avec maquette) */
+.submit-btn {
+  background-color: #FF6B5B;  /* Rouge-corail */
+  border-radius: 20px;
+  padding: 12px 28px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.submit-btn:hover {
+  background-color: #ff5545;
+  transform: scale(1.05);  /* Effet interactif */
+}
+```
+
+---
+
+### **F. Problèmes résolus**
+
+#### **Problème 1 : CORS - Catégories non chargées**
+
+**Symptôme :**
+```
+Access to fetch at 'http://localhost:8888/...' from origin 'http://localhost:5174' 
+has been blocked by CORS policy
+```
+
+**Cause :** Backend configuré pour `localhost:5173` mais Vite tournait sur port `5174`
+
+**Solution :**
+```php
+// backend/index.php - AVANT
+header("Access-Control-Allow-Origin: http://localhost:5173");
+
+// backend/index.php - APRÈS (multi-ports)
+$allowed_origins = ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'];
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+
+if (in_array($origin, $allowed_origins)) {
+    header("Access-Control-Allow-Origin: $origin");
+}
+```
+
+**Validation :**
+```bash
+curl -s "http://localhost:8888/PFR/Memory/backend/?loc=categories"
+# Retourne : [{"id_Category":1,"Name_Unique":"Frontend"}, ...]
+```
+
+---
+
+#### **Problème 2 : Catégories affichées comme "Sans catégorie"**
+
+**Symptôme :** Toutes les cartes affichent "Sans catégorie" malgré les données en BDD
+
+**Cause :** L'API `getAllProjects()` ne retourne que `Category_id_Category` (INT), pas le nom
+
+**État actuel :**
+```sql
+SELECT * FROM Project  -- Retourne seulement id_Category
+```
+
+**Solution à implémenter :**
+```sql
+SELECT 
+    p.*,
+    c.Name_Unique as Category_Name
+FROM Project p
+LEFT JOIN Category c ON p.Category_id_Category = c.id_Category
+```
+
+**Statut :** ⏳ À faire (jointure SQL à ajouter dans le modèle)
+
+---
+
+### **G. Métriques et performances**
+
+| Métrique | Valeur | Notes |
+|----------|--------|-------|
+| **Composants créés** | 1 (ConfirmModal) | Réutilisable |
+| **Composants modifiés** | 3 (ProjectList, ProjectForm, App) | Enrichis |
+| **Lignes de code ajoutées** | ~800 lignes | Vue + CSS |
+| **Endpoints API utilisés** | 3 | categories, projects list, archivate |
+| **Temps chargement page** | < 500ms | Non optimisé (dev mode) |
+| **Temps d'archivage** | < 200ms | Réseau local |
+| **Tests unitaires frontend** | 0 | À implémenter (Vitest) |
+
+---
+
+### **H. Tests utilisateur réalisés**
+
+**Environnement :**
+- Navigateur : Chrome 130+
+- Résolution : 1920x1080
+- Serveur : Vite dev (localhost:5174)
+- Backend : MAMP (localhost:8888)
+
+**Scénarios validés :**
+1. ✅ Affichage initial : 8 projets chargés
+2. ✅ Filtrage "Actifs" : 7 projets affichés
+3. ✅ Filtrage "Archivés" : 1 projet affiché
+4. ✅ Modal confirmation : affichage correct
+5. ✅ Archivage projet : succès avec message vert
+6. ✅ Auto-refresh : liste mise à jour sans F5
+7. ✅ Compteurs dynamiques : "Actifs (6)" après archivage
+8. ✅ Badge archivé : "Archivé le 14/11/2025"
+9. ✅ Responsive : 1 colonne sur mobile
 
 ---
 
 **Date de dernière mise à jour :** 14 novembre 2025  
 **Statut :** 
 - ✅ Création de projets opérationnelle
-- ✅ Archivage de projets fonctionnel
-- ✅ Tests unitaires PHPUnit validés
+- ✅ Archivage de projets fonctionnel (backend + frontend)
+- ✅ Tests unitaires PHPUnit validés (backend)
+- ✅ Interface utilisateur moderne et responsive
+- ✅ Charte graphique cohérente appliquée
+- ⏳ Tests frontend à implémenter (Vitest)
