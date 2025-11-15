@@ -10,7 +10,13 @@ class Projects_model {
 
     public function getAllProjects()
     {
-        $stmt = $this->PDO->prepare("SELECT * FROM Project");
+        $stmt = $this->PDO->prepare("
+            SELECT 
+                p.*,
+                c.Name_Unique as Category_Name
+            FROM Project p
+            LEFT JOIN Category c ON p.Category_id_Category = c.id_Category
+        ");
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     } 
@@ -24,7 +30,14 @@ class Projects_model {
 
     public function getProjectsByCategory($category)
     {
-        $stmt = $this->PDO->prepare("SELECT * FROM Project WHERE Category_id_Category = :category");
+        $stmt = $this->PDO->prepare("
+            SELECT 
+                p.*,
+                c.Name_Unique as Category_Name
+            FROM Project p
+            LEFT JOIN Category c ON p.Category_id_Category = c.id_Category
+            WHERE p.Category_id_Category = :category
+        ");
         $stmt->bindParam(':category', $category);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
