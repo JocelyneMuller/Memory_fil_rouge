@@ -18,7 +18,7 @@ class ProjectsModelTest extends TestCase
         require_once __DIR__ . '/../config/database.php';
         global $PDO;
         
-        if (!$PDO) {
+        if (!$PDO instanceof PDO) {
             $this->fail('Database connection failed. Check config/database.php');
         }
         
