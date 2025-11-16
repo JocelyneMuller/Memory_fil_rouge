@@ -1,17 +1,22 @@
 <template>
   <div class="project-form">
-    <h2>Créer un nouveau projet</h2>
-    
+    <!-- Logo Memory -->
+    <div class="logo-container">
+      <img src="/logo_memory.png" alt="Memory Logo" class="logo">
+    </div>
+
+    <h2>Create a new project</h2>
+
     <form @submit.prevent="createProject">
       <div class="form-group">
-        <label for="projectName">Nom du projet :</label>
+        <label for="projectName">Name of project :</label>
         <input 
           id="projectName"
           v-model="formData.name" 
           type="text" 
           required 
           maxlength="50" 
-          placeholder="Nom de votre projet"
+          placeholder="Name of your project"
         >
       </div>
 
@@ -22,19 +27,19 @@
           v-model="formData.description" 
           required 
           maxlength="1000" 
-          placeholder="Description détaillée du projet..."
+          placeholder="Detailed description of the project..."
           rows="4"
         ></textarea>
       </div>
 
       <div class="form-group">
-        <label for="projectCategory">Catégorie :</label>
+        <label for="projectCategory">Category :</label>
         <select 
           id="projectCategory"
           v-model="formData.category_id" 
           required
         >
-          <option value="">-- Choisir une catégorie --</option>
+          <option value="">-- Choose a category --</option>
           <option 
             v-for="category in categories" 
             :key="category.id_Category" 
@@ -46,7 +51,7 @@
       </div>
 
       <button type="submit" :disabled="loading" class="submit-btn">
-        {{ loading ? 'Création...' : 'Créer le projet' }}
+        {{ loading ? 'Creating...' : 'Create the project' }}
       </button>
     </form>
 
@@ -60,7 +65,6 @@
 <script>
 export default {
   name: "ProjectForm",
-  
   data() {
     return {
       formData: {
@@ -74,66 +78,45 @@ export default {
       messageClass: ''
     }
   },
-  
   async mounted() {
     await this.loadCategories();
   },
-  
   methods: {
     async loadCategories() {
-      // Charger les catégories depuis l'API. L'URL de base vient de la variable d'environnement VITE_API_URL
-      console.log('Chargement des catégories...');
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8888/PFR/Memory/backend/';
       const endpoint = `${baseUrl}?loc=categories`;
-
       try {
         const response = await fetch(endpoint);
-        console.log('Réponse catégories:', response.status);
-
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
-
         const categories = await response.json();
-        console.log('Catégories chargées:', categories);
         this.categories = categories;
       } catch (error) {
-        console.error('Erreur chargement catégories:', error);
-        this.showMessage('Erreur lors du chargement des catégories', 'error');
+        console.error('Error loading categories:', error);
       }
     },
-    
     async createProject() {
       this.loading = true;
       this.message = '';
-      
       try {
-        // Préparation des données
         const formData = new FormData();
         formData.append('name', this.formData.name);
         formData.append('description', this.formData.description);
         formData.append('category_id', this.formData.category_id);
-        
-        // Appel API (base URL configurable via VITE_API_URL)
         const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8888/PFR/Memory/backend/';
         const endpoint = `${baseUrl}?loc=projects&action=create`;
         const response = await fetch(endpoint, {
           method: 'POST',
           body: formData
         });
-        
         const result = await response.json();
-        
         if (result.success) {
           this.showMessage(`Projet "${this.formData.name}" créé avec succès !`, 'success');
           this.resetForm();
-          
-          // Émet un événement pour notifier le parent
-          this.$emit('projectCreated', result);
         } else {
           this.showMessage('Erreur : ' + result.error, 'error');
         }
-        
       } catch (error) {
         console.error('Erreur création projet:', error);
         this.showMessage('Erreur de communication avec le serveur', 'error');
@@ -141,23 +124,14 @@ export default {
         this.loading = false;
       }
     },
-    
     resetForm() {
-      this.formData = {
-        name: '',
-        description: '',
-        category_id: ''
-      };
+      this.formData.name = '';
+      this.formData.description = '';
+      this.formData.category_id = '';
     },
-    
-    showMessage(text, type) {
-      this.message = text;
-      this.messageClass = type;
-      
-      // Efface le message après 5 secondes
-      setTimeout(() => {
-        this.message = '';
-      }, 5000);
+    showMessage(message, type) {
+      this.message = message;
+      this.messageClass = type === 'success' ? 'message success' : 'message error';
     }
   }
 }
@@ -165,89 +139,91 @@ export default {
 
 <style scoped>
 .project-form {
-  background-color: #fff;
-  padding: 25px;
-  border: 2px solid #000;
-  border-radius: 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  width: 1000px;
+  margin: 0 auto;
+  padding: 40px;
+  background-color: #fff9ef;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.project-form h2 {
-  font-size: 22px;
-  font-weight: bold;
-  margin-bottom: 20px;
-  color: #000;
+.logo-container {
+  text-align: left;
+  margin-bottom: 30px;
+}
+
+.logo {
+  max-width: 100px;
+}
+
+h2 {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #333;
+  font-size: 28px;
 }
 
 .form-group {
-  margin-bottom: 15px;
+  margin-bottom: 20px;
 }
 
 label {
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
   font-weight: bold;
+  color: #555;
+  font-size: 16px;
 }
 
 input, textarea, select {
   width: 100%;
-  padding: 10px 14px;
-  border: 2px solid #ddd;
+  padding: 15px;
+  border: 1px solid #ccc;
   border-radius: 8px;
-  font-size: 15px;
-  transition: border-color 0.2s ease;
-}
-
-input:focus, textarea:focus, select:focus {
-  outline: none;
-  border-color: #FF6B5B;
+  font-size: 16px;
 }
 
 textarea {
   resize: vertical;
+  min-height: 120px;
 }
 
-.submit-btn {
-  background-color: #FF6B5B;
+button.submit-btn {
+  background-color: #ff584a;
   color: white;
-  padding: 12px 28px;
+  padding: 15px 30px;
   border: none;
-  border-radius: 20px;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 16px;
-  font-weight: 600;
-  transition: all 0.2s ease;
+  font-size: 18px;
+  width: 100%;
+  margin-top: 20px;
 }
 
-.submit-btn:hover {
-  background-color: #ff5545;
-  transform: scale(1.05);
+button.submit-btn:hover:not(:disabled) {
+  background-color: #0056b3;
 }
 
-.submit-btn:active {
-  transform: scale(0.98);
-}
-
-.submit-btn:disabled {
+button.submit-btn:disabled {
   background-color: #ccc;
   cursor: not-allowed;
-  transform: none;
 }
 
 .message {
-  margin-top: 15px;
-  padding: 10px;
-  border-radius: 4px;
+  margin-top: 20px;
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
   font-weight: bold;
 }
 
-.success {
+.message.success {
   background-color: #d4edda;
   color: #155724;
   border: 1px solid #c3e6cb;
 }
 
-.error {
+.message.error {
   background-color: #f8d7da;
   color: #721c24;
   border: 1px solid #f5c6cb;
