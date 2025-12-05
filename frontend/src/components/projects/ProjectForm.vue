@@ -58,6 +58,15 @@
     <!-- Messages de retour -->
     <div v-if="message" :class="messageClass" class="message">
       {{ message }}
+      
+      <!-- Bouton "Voir tous les projets" après succès -->
+      <router-link 
+        v-if="showViewAllButton" 
+        to="/projects" 
+        class="view-all-btn"
+      >
+        Voir tous les projets
+      </router-link>
     </div>
   </div>
 </template>
@@ -75,7 +84,8 @@ export default {
       categories: [],
       loading: false,
       message: '',
-      messageClass: ''
+      messageClass: '',
+      showViewAllButton: false
     }
   },
   async mounted() {
@@ -99,6 +109,7 @@ export default {
     async createProject() {
       this.loading = true;
       this.message = '';
+      this.showViewAllButton = false;
       try {
         const formData = new FormData();
         formData.append('name', this.formData.name);
@@ -113,6 +124,7 @@ export default {
         const result = await response.json();
         if (result.success) {
           this.showMessage(`Projet "${this.formData.name}" créé avec succès !`, 'success');
+          this.showViewAllButton = true;
           this.resetForm();
         } else {
           this.showMessage('Erreur : ' + result.error, 'error');
@@ -227,5 +239,23 @@ button.submit-btn:disabled {
   background-color: #f8d7da;
   color: #721c24;
   border: 1px solid #f5c6cb;
+}
+
+.view-all-btn {
+  display: inline-block;
+  margin-top: 15px;
+  background-color: #007bff;
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+
+.view-all-btn:hover {
+  background-color: #0056b3;
 }
 </style>
