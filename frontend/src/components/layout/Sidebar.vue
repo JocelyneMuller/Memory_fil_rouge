@@ -45,17 +45,41 @@
     </nav>
 
     <div class="sidebar-footer">
-      <div class="user-login">
+      <div v-if="authStore.user" class="user-info">
+        <div class="user-avatar">
+          <span class="user-icon">{{ userInitial }}</span>
+        </div>
+        <div class="user-details">
+          <div class="user-name">{{ authStore.user.Username }}</div>
+          <div class="user-role">{{ authStore.user.Role }}</div>
+        </div>
+        <button @click="handleLogout" class="btn-logout" title="Déconnexion">
+          🚪
+        </button>
+      </div>
+      <router-link v-else to="/login" class="user-login">
         <span class="user-icon">👤</span>
         <span class="user-text">Log in</span>
-      </div>
+      </router-link>
     </div>
   </aside>
 </template>
 
-<script>
-export default {
-  name: 'Sidebar'
+<script setup>
+import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../../stores/auth'
+
+const router = useRouter()
+const authStore = useAuthStore()
+
+const userInitial = computed(() => {
+  return authStore.user?.Username?.charAt(0).toUpperCase() || '?'
+})
+
+function handleLogout() {
+  authStore.logout()
+  router.push('/login')
 }
 </script>
 
@@ -127,16 +151,21 @@ export default {
   padding: 20px 15px;
 }
 
-.user-login {
+.user-info {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  cursor: pointer;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+
+.user-avatar {
+  flex-shrink: 0;
 }
 
 .user-icon {
-  font-size: 32px;
+  font-size: 20px;
   background: #ff584a;
   border-radius: 50%;
   width: 48px;
@@ -144,6 +173,57 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+  color: white;
+  font-weight: bold;
+}
+
+.user-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-role {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: capitalize;
+}
+
+.btn-logout {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.btn-logout:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.user-login {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  text-decoration: none;
+  border-radius: 12px;
+  transition: background 0.2s;
+}
+
+.user-login:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .user-text {
