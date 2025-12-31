@@ -1,14 +1,18 @@
 <?php
 header('Content-Type: application/json');
 
-// Gestion CORS pour Vite dev server (ports 5173 et 5174)
-$allowed_origins = ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'];
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+// Gestion CORS pour Vite dev server - Autoriser toutes origines localhost en dev
+$origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
 
-if (in_array($origin, $allowed_origins)) {
-    header("Access-Control-Allow-Origin: $origin");
+// Debug: log l'origine reçue
+error_log("CORS Origin received: " . $origin);
+
+// En développement, autoriser toutes les origines localhost
+if (!empty($origin) && strpos($origin, 'http://localhost:') === 0) {
+    header("Access-Control-Allow-Origin: " . $origin);
 } else {
-    header("Access-Control-Allow-Origin: http://localhost:5173");
+    // Fallback pour les requêtes sans origin (curl, etc.)
+    header("Access-Control-Allow-Origin: *");
 }
 
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
@@ -29,13 +33,27 @@ switch ($loc) {
     case 'home':
         require_once 'views/home.php';
         break;
+        
+    case 'auth':
+        // Routes d'authentification (login, register, me, logout)
+        require_once 'controllers/auth.php';
+        $action = filter_input(INPUT_GET, 'action') ?? 'login';
+        $controller = new AuthController($PDO);
+        $controller->run($action);
+        break;
+        
     case 'projects':
         require_once 'controllers/projects.php';
         $controller = new ProjectsController($PDO);
         $data = $controller-> run();
         echo json_encode($data);
         break;
+        
     case 'categories':
+        // Protection par authentification JWT
+        require_once 'utils/AuthMiddleware.php';
+        AuthMiddleware::requireAuth();
+        
         // Endpoint simple pour lister les catégories
         if ($PDO) {
             $stmt = $PDO->prepare("SELECT * FROM Category");
@@ -46,6 +64,7 @@ switch ($loc) {
             echo json_encode(['error' => 'Database connection failed']);
         }
         break;
+        
     default:
         require_once 'views/404.php';
         break;
