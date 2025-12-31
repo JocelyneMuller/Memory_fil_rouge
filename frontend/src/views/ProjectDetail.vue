@@ -94,8 +94,15 @@
 </template>
 
 <script>
+import { useAuthStore } from '@/stores/auth'
+
 export default {
   name: 'ProjectDetail',
+
+  setup() {
+    const authStore = useAuthStore()
+    return { authStore }
+  },
   
   data() {
     return {
@@ -126,12 +133,30 @@ export default {
   methods: {
     async loadAllProjects() {
       try {
-        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8888/PFR/Memory/backend/'
-        const response = await fetch(`${baseUrl}?loc=projects&action=list`)
-        
-        if (response.ok) {
-          this.allProjects = await response.json()
+        // Vérification de l'authentification
+        if (!this.authStore.isAuthenticated()) {
+          this.$router.push('/login')
+          return
         }
+
+        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8888/PFR/Memory/backend/'
+        const response = await fetch(`${baseUrl}?loc=projects&action=list`, {
+          headers: {
+            'Authorization': `Bearer ${this.authStore.token}`,
+            'Content-Type': 'application/json'
+          }
+        })
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            this.authStore.logout()
+            this.$router.push('/login')
+            return
+          }
+          throw new Error(`HTTP ${response.status}`)
+        }
+
+        this.allProjects = await response.json()
       } catch (error) {
         console.error('Error loading all projects:', error)
       }
@@ -140,33 +165,49 @@ export default {
     async loadProject() {
       const projectId = this.$route.params.id
       this.loading = true
-      
+
       try {
+        // Vérification de l'authentification
+        if (!this.authStore.isAuthenticated()) {
+          this.$router.push('/login')
+          return
+        }
+
         const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8888/PFR/Memory/backend/'
-        const response = await fetch(`${baseUrl}?loc=projects&action=show&id=${projectId}`)
-        
+        const response = await fetch(`${baseUrl}?loc=projects&action=show&id=${projectId}`, {
+          headers: {
+            'Authorization': `Bearer ${this.authStore.token}`,
+            'Content-Type': 'application/json'
+          }
+        })
+
         if (!response.ok) {
+          if (response.status === 401) {
+            this.authStore.logout()
+            this.$router.push('/login')
+            return
+          }
           throw new Error(`HTTP ${response.status}`)
         }
-        
+
         const data = await response.json()
-        
+
         if (data.error) {
           throw new Error(data.error)
         }
-        
-        if (data.Category_id_Category) {
-          const catResponse = await fetch(`${baseUrl}?loc=categories`)
-          const categories = await catResponse.json()
-          const category = categories.find(c => c.id_Category == data.Category_id_Category)
-          data.Category_Name = category ? category.Name_Unique : null
+
+        // Vérification si le projet existe (false/null depuis le backend)
+        if (!data || !data.id_Project) {
+          throw new Error('Projet non trouvé')
         }
-        
+
+        // Plus besoin de charger les catégories séparément
+        // car getProjectById() retourne maintenant Category_Name via LEFT JOIN
         this.project = data
-        
+
       } catch (error) {
         console.error('Error loading project:', error)
-        this.showMessage('Erreur lors du chargement du projet', 'error')
+        this.showMessage('Erreur lors du chargement du projet : ' + error.message, 'error')
       } finally {
         this.loading = false
       }
@@ -185,23 +226,43 @@ export default {
         this.showMessage('Ce projet est déjà archivé.', 'info')
         return
       }
-      
+
       try {
+        // Vérification de l'authentification
+        if (!this.authStore.isAuthenticated()) {
+          this.$router.push('/login')
+          return
+        }
+
         const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8888/PFR/Memory/backend/'
-        const response = await fetch(`${baseUrl}?loc=projects&action=archive&id=${this.project.id_Project}`, {
-          method: 'PUT'
+        const response = await fetch(`${baseUrl}?loc=projects&action=archivate&id=${this.project.id_Project}`, {
+          headers: {
+            'Authorization': `Bearer ${this.authStore.token}`,
+            'Content-Type': 'application/json'
+          }
         })
-        
+
         if (!response.ok) {
+          if (response.status === 401) {
+            this.authStore.logout()
+            this.$router.push('/login')
+            return
+          }
           throw new Error(`HTTP ${response.status}`)
         }
-        
-        this.showMessage('Projet archivé avec succès !', 'success')
-        this.project.Archive_date = new Date().toISOString().split('T')[0]
-        
+
+        const result = await response.json()
+
+        if (result.error) {
+          throw new Error(result.error)
+        }
+
+        this.showMessage(`Projet "${this.project.Name_Unique}" archivé avec succès !`, 'success')
+        this.project.Archive_date = result.archived_date || new Date().toISOString().split('T')[0]
+
       } catch (error) {
         console.error('Archive error:', error)
-        this.showMessage('Erreur lors de l\'archivage', 'error')
+        this.showMessage('Erreur lors de l\'archivage : ' + error.message, 'error')
       }
     },
     

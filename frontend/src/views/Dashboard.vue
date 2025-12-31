@@ -48,8 +48,15 @@
 </template>
 
 <script>
+import { useAuthStore } from '@/stores/auth'
+
 export default {
   name: 'Dashboard',
+  
+  setup() {
+    const authStore = useAuthStore()
+    return { authStore }
+  },
   
   data() {
     return {
@@ -79,16 +86,45 @@ export default {
   methods: {
     async loadProjects() {
       try {
-        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8888/PFR/Memory/backend/'
-        const response = await fetch(`${baseUrl}?loc=projects&action=list`)
+        // Vérification de l'authentification
+        if (!this.authStore.isAuthenticated()) {
+          console.log('❌ Non authentifié')
+          this.$router.push('/login')
+          return
+        }
         
-        if (!response.ok) throw new Error('Erreur chargement projets')
+        console.log('✅ Authentifié, token:', this.authStore.token?.substring(0, 30) + '...')
+        
+        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8888/PFR/Memory/backend/'
+        const url = `${baseUrl}?loc=projects&action=list`
+        console.log('📡 Appel API:', url)
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${this.authStore.token}`,
+            'Content-Type': 'application/json'
+          }
+        })
+        
+        console.log('📥 Réponse API status:', response.status)
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            console.log('❌ 401 Unauthorized - Déconnexion')
+            this.authStore.logout()
+            this.$router.push('/login')
+            return
+          }
+          throw new Error('Erreur chargement projets')
+        }
         
         const projects = await response.json()
+        console.log('✅ Projets chargés:', projects.length)
         this.projects = projects.filter(p => !p.Archive_date)
         
       } catch (error) {
-        console.error('Erreur chargement projets:', error)
+        console.error('❌ Erreur chargement projets:', error)
       }
     }
   }
