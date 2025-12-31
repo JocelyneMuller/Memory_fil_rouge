@@ -72,8 +72,15 @@
 </template>
 
 <script>
+import { useAuthStore } from '@/stores/auth'
+
 export default {
-  name: "ProjectForm",
+  name: 'ProjectForm',
+  setup() {
+    const authStore = useAuthStore()
+    return { authStore }
+  },
+  
   data() {
     return {
       formData: {
@@ -84,22 +91,41 @@ export default {
       categories: [],
       loading: false,
       message: '',
-      messageClass: '',
+      messageType: '',
       showViewAllButton: false
-    }
+    };
   },
   async mounted() {
     await this.loadCategories();
   },
   methods: {
     async loadCategories() {
+      // Vérification de l'authentification
+      if (!this.authStore.isAuthenticated()) {
+        this.$router.push('/login')
+        return
+      }
+      
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8888/PFR/Memory/backend/';
       const endpoint = `${baseUrl}?loc=categories`;
       try {
-        const response = await fetch(endpoint);
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${this.authStore.token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
         if (!response.ok) {
+          if (response.status === 401) {
+            this.authStore.logout()
+            this.$router.push('/login')
+            return
+          }
           throw new Error(`HTTP ${response.status}`);
         }
+        
         const categories = await response.json();
         this.categories = categories;
       } catch (error) {
@@ -110,17 +136,36 @@ export default {
       this.loading = true;
       this.message = '';
       this.showViewAllButton = false;
+      
+      // Vérification de l'authentification
+      if (!this.authStore.isAuthenticated()) {
+        this.$router.push('/login')
+        return
+      }
+      
       try {
         const formData = new FormData();
         formData.append('name', this.formData.name);
         formData.append('description', this.formData.description);
         formData.append('category_id', this.formData.category_id);
+        
         const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8888/PFR/Memory/backend/';
         const endpoint = `${baseUrl}?loc=projects&action=create`;
+        
         const response = await fetch(endpoint, {
           method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.authStore.token}`
+          },
           body: formData
         });
+        
+        if (!response.ok && response.status === 401) {
+          this.authStore.logout()
+          this.$router.push('/login')
+          return
+        }
+        
         const result = await response.json();
         if (result.success) {
           this.showMessage(`Projet "${this.formData.name}" créé avec succès !`, 'success');

@@ -34,9 +34,17 @@
       </nav>
 
       <div class="sidebar-footer">
-        <div class="user-login">
-          <span class="user-icon">👤</span>
-          <span class="user-text">Log in</span>
+        <div class="user-info" v-if="authStore.user">
+          <div class="user-avatar">
+            {{ (authStore.user.email || authStore.user.Username || '?').charAt(0).toUpperCase() }}
+          </div>
+          <div class="user-details">
+            <span class="user-email">{{ authStore.user.email || authStore.user.Username }}</span>
+            <span class="user-role">{{ authStore.user.role || authStore.user.Role }}</span>
+          </div>
+          <button @click="logout" class="logout-btn" title="Déconnexion">
+            🚪
+          </button>
         </div>
       </div>
     </aside>
@@ -92,8 +100,15 @@
 </template>
 
 <script>
+import { useAuthStore } from '@/stores/auth'
+
 export default {
-  name: "ProjectList",
+  name: 'ProjectList',
+  
+  setup() {
+    const authStore = useAuthStore()
+    return { authStore }
+  },
   
   data() {
     return {
@@ -151,10 +166,28 @@ export default {
       
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8888/PFR/Memory/backend/';
       
+      // Vérification de l'authentification
+      if (!this.authStore.isAuthenticated()) {
+        this.$router.push('/login')
+        return
+      }
+      
       try {
-        const response = await fetch(`${baseUrl}?loc=projects&action=list`);
+        const response = await fetch(`${baseUrl}?loc=projects&action=list`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${this.authStore.token}`,
+            'Content-Type': 'application/json'
+          }
+        });
 
         if (!response.ok) {
+          // Si 401 Unauthorized, rediriger vers login
+          if (response.status === 401) {
+            this.authStore.logout()
+            this.$router.push('/login')
+            return
+          }
           throw new Error(`HTTP ${response.status}`);
         }
 
@@ -183,6 +216,15 @@ export default {
       this.message = text;
       this.messageClass = type;
       setTimeout(() => { this.message = ''; }, 5000);
+    },
+    
+    async logout() {
+      try {
+        await this.authStore.logout()
+        this.$router.push('/login')
+      } catch (error) {
+        console.error('Erreur lors de la déconnexion:', error)
+      }
     }
   }
 }
