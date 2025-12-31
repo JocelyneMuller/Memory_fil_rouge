@@ -1,16 +1,28 @@
 <?php
 
 require_once __DIR__ . '/../models/Projects_model.php';
+require_once __DIR__ . '/../utils/AuthMiddleware.php';
 
 class ProjectsController {
     private $PDO;
+
     public function __construct($PDO)
     {
         $this->PDO = $PDO;
     }
 
+    /**
+     * Méthode privée pour vérifier l'authentification
+     * Évite la duplication du code dans toutes les méthodes
+     */
+    private function requireAuth()
+    {
+        AuthMiddleware::requireAuth();
+    }
+
     public function listProjects()
     {
+        $this->requireAuth();
     $category = filter_input(INPUT_GET, 'category');
         $model = new Projects_model($this->PDO);
     if ($category) {
@@ -49,6 +61,8 @@ public function run (){
  */
 public function show($id)
 {
+    $this->requireAuth();
+    
     if ($id && is_int($id)) {
         $model = new Projects_model($this->PDO);
         return $model->getProjectById($id);
@@ -63,6 +77,8 @@ public function show($id)
  */
 public function createProject()
 {
+    $this->requireAuth();
+    
     // ============================================
     // ÉTAPE 1 : RÉCUPÉRATION DES DONNÉES UTILISATEUR
     // ============================================
@@ -146,6 +162,8 @@ public function createProject()
  */
 public function archiveProject()
 {
+    $this->requireAuth();
+    
     $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
     
     if (!$id) {
