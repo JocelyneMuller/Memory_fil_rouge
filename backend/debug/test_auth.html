@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API Authentication - Memory</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 2.5rem;
+        }
+        
+        .test-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .endpoint {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .method {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-right: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .post { background: #28a745; color: white; }
+        .get { background: #007bff; color: white; }
+        
+        .url {
+            font-family: 'Courier New', monospace;
+            color: #495057;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .response {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            display: none;
+        }
+        
+        .response.show {
+            display: block;
+        }
+        
+        .response h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .response pre {
+            background: #2d3748;
+            color: #68d391;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        .success {
+            border-left: 4px solid #28a745;
+        }
+        
+        .error {
+            border-left: 4px solid #dc3545;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .credentials {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .credentials strong {
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Test API Authentication</h1>
+        
+        <!-- Test Debug: Headers -->
+        <div class="test-section">
+            <h2>🔍 Debug - Vérification des en-têtes HTTP</h2>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="url">/backend/debug_headers.php</span>
+            </div>
+            <button onclick="testHeaders()">
+                Tester la réception des en-têtes
+            </button>
+            <div id="headersResponse" class="response"></div>
+        </div>
+        
+        <!-- Test 1: Login -->
+        <div class="test-section">
+            <h2>1. Test de connexion (Login)</h2>
+            <div class="credentials">
+                <strong>Compte admin par défaut :</strong><br>
+                Email: admin@memory.local<br>
+                Mot de passe: admin123
+            </div>
+            <div class="endpoint">
+                <span class="method post">POST</span>
+                <span class="url">/backend/?loc=auth&action=login</span>
+            </div>
+            <button onclick="testLogin()">
+                Tester la connexion
+            </button>
+            <div id="loginResponse" class="response"></div>
+        </div>
+        
+        <!-- Test 2: Me -->
+        <div class="test-section">
+            <h2>2. Test récupération utilisateur (Me)</h2>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="url">/backend/?loc=auth&action=me</span>
+            </div>
+            <button onclick="testMe()">
+                Tester /auth/me
+            </button>
+            <div id="meResponse" class="response"></div>
+        </div>
+        
+        <!-- Test 3: Register -->
+        <div class="test-section">
+            <h2>3. Test inscription (Register - Admin only)</h2>
+            <div class="endpoint">
+                <span class="method post">POST</span>
+                <span class="url">/backend/?loc=auth&action=register</span>
+            </div>
+            <button onclick="testRegister()">
+                Tester inscription (nouveau user)
+            </button>
+            <div id="registerResponse" class="response"></div>
+        </div>
+        
+        <!-- Test 4: Logout -->
+        <div class="test-section">
+            <h2>4. Test déconnexion (Logout)</h2>
+            <div class="endpoint">
+                <span class="method post">POST</span>
+                <span class="url">/backend/?loc=auth&action=logout</span>
+            </div>
+            <button onclick="testLogout()">
+                Tester logout
+            </button>
+            <div id="logoutResponse" class="response"></div>
+        </div>
+    </div>
+
+    <script>
+        let authToken = null;
+
+        async function testHeaders() {
+            const responseDiv = document.getElementById('headersResponse');
+            responseDiv.innerHTML = '<p>Chargement<span class="loading"></span></p>';
+            responseDiv.className = 'response show';
+            
+            // Utiliser un token de test pour voir s'il est reçu
+            const testToken = 'test_token_' + Date.now();
+            
+            try {
+                const response = await fetch('http://localhost:8888/PFR/Memory/backend/debug_headers.php', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${testToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                responseDiv.className = 'response show';
+                
+                let html = '<h3>📋 Diagnostic des en-têtes HTTP</h3>';
+                html += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                
+                if (data.authorization_found) {
+                    html += '<p style="color: green; font-weight: bold; margin-top: 15px;">✅ En-tête Authorization détecté dans: ' + data.authorization_location + '</p>';
+                } else {
+                    html += '<p style="color: red; font-weight: bold; margin-top: 15px;">❌ En-tête Authorization NON détecté - Problème de configuration Apache!</p>';
+                    html += '<p style="margin-top: 10px;">Solution: Ajouter dans le fichier .htaccess du backend:</p>';
+                    html += '<pre style="background: #2d3748; color: #68d391; padding: 15px; border-radius: 6px; margin-top: 10px;">RewriteEngine On\nRewriteCond %{HTTP:Authorization} .\nRewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]</pre>';
+                }
+                
+                responseDiv.innerHTML = html;
+                
+            } catch (error) {
+                responseDiv.className = 'response show error';
+                responseDiv.innerHTML = `
+                    <h3>❌ Erreur réseau</h3>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+
+        async function testLogin() {
+            const responseDiv = document.getElementById('loginResponse');
+            responseDiv.innerHTML = '<p>Chargement<span class="loading"></span></p>';
+            responseDiv.className = 'response show';
+            
+            try {
+                const response = await fetch('http://localhost:8888/PFR/Memory/backend/?loc=auth&action=login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@memory.local',
+                        password: 'admin123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    authToken = data.data.token;
+                    responseDiv.className = 'response show success';
+                    responseDiv.innerHTML = `
+                        <h3>✅ Succès !</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                        <p><strong>Token sauvegardé pour les prochains tests</strong></p>
+                    `;
+                } else {
+                    responseDiv.className = 'response show error';
+                    responseDiv.innerHTML = `
+                        <h3>❌ Erreur</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                responseDiv.className = 'response show error';
+                responseDiv.innerHTML = `
+                    <h3>❌ Erreur réseau</h3>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+
+        async function testMe() {
+            const responseDiv = document.getElementById('meResponse');
+            
+            if (!authToken) {
+                responseDiv.className = 'response show error';
+                responseDiv.innerHTML = '<h3>⚠️ Attention</h3><p>Vous devez d\'abord vous connecter (test 1) pour obtenir un token.</p>';
+                return;
+            }
+            
+            responseDiv.innerHTML = '<p>Chargement<span class="loading"></span></p>';
+            responseDiv.className = 'response show';
+            
+            try {
+                const response = await fetch('http://localhost:8888/PFR/Memory/backend/?loc=auth&action=me', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    responseDiv.className = 'response show success';
+                    responseDiv.innerHTML = `
+                        <h3>✅ Succès !</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    responseDiv.className = 'response show error';
+                    responseDiv.innerHTML = `
+                        <h3>❌ Erreur</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                responseDiv.className = 'response show error';
+                responseDiv.innerHTML = `
+                    <h3>❌ Erreur réseau</h3>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+
+        async function testRegister() {
+            const responseDiv = document.getElementById('registerResponse');
+            
+            if (!authToken) {
+                responseDiv.className = 'response show error';
+                responseDiv.innerHTML = '<h3>⚠️ Attention</h3><p>Vous devez d\'abord vous connecter (test 1) en tant qu\'admin.</p>';
+                return;
+            }
+            
+            responseDiv.innerHTML = '<p>Chargement<span class="loading"></span></p>';
+            responseDiv.className = 'response show';
+            
+            const timestamp = Date.now();
+            
+            try {
+                const response = await fetch('http://localhost:8888/PFR/Memory/backend/?loc=auth&action=register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        username: `testuser${timestamp}`,
+                        email: `test${timestamp}@example.com`,
+                        password: 'password123',
+                        role: 'user'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    responseDiv.className = 'response show success';
+                    responseDiv.innerHTML = `
+                        <h3>✅ Succès !</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    responseDiv.className = 'response show error';
+                    responseDiv.innerHTML = `
+                        <h3>❌ Erreur</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                responseDiv.className = 'response show error';
+                responseDiv.innerHTML = `
+                    <h3>❌ Erreur réseau</h3>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+
+        async function testLogout() {
+            const responseDiv = document.getElementById('logoutResponse');
+            responseDiv.innerHTML = '<p>Chargement<span class="loading"></span></p>';
+            responseDiv.className = 'response show';
+            
+            try {
+                const response = await fetch('http://localhost:8888/PFR/Memory/backend/?loc=auth&action=logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    authToken = null;
+                    responseDiv.className = 'response show success';
+                    responseDiv.innerHTML = `
+                        <h3>✅ Succès !</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                        <p><strong>Token supprimé</strong></p>
+                    `;
+                } else {
+                    responseDiv.className = 'response show error';
+                    responseDiv.innerHTML = `
+                        <h3>❌ Erreur</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                responseDiv.className = 'response show error';
+                responseDiv.innerHTML = `
+                    <h3>❌ Erreur réseau</h3>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
