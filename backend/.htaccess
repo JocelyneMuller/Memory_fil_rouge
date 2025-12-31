@@ -1,0 +1,8 @@
+# Forcer Apache à transmettre l'en-tête Authorization à PHP
+# Nécessaire pour l'authentification JWT
+
+RewriteEngine On
+
+# Si un en-tête Authorization est présent, le rendre disponible dans $_SERVER
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
