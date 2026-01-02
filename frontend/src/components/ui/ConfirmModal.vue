@@ -108,12 +108,12 @@ export default {
 .modal-container {
   background-color: #fff;
   border: 2px solid #000;
-  border-radius: 20px;
+  border-radius: 25px;
   max-width: 500px;
   width: 90%;
-  padding: 30px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-  animation: scaleIn 0.2s ease-out;
+  padding: 40px;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
+  animation: scaleIn 0.3s ease-out;
 }
 
 @keyframes scaleIn {
@@ -166,40 +166,40 @@ export default {
   gap: 15px;
 }
 
-/* Bouton Annuler (gris) */
+/* Bouton Annuler */
 .btn-cancel {
   background-color: #fff;
   color: #333;
-  border: 2px solid #999;
-  border-radius: 20px;
-  padding: 12px 28px;
+  border: 2px solid #000;
+  border-radius: 25px;
+  padding: 14px 40px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .btn-cancel:hover {
-  background-color: #f5f5f5;
-  border-color: #666;
+  background-color: #f8f9fa;
+  transform: translateY(-2px);
 }
 
 /* Bouton Confirmer (rouge-corail) */
 .btn-confirm {
-  background-color: #FF6B5B;
+  background-color: #ff584a;
   color: #fff;
-  border: none;
-  border-radius: 20px;
-  padding: 12px 28px;
+  border: 2px solid #ff584a;
+  border-radius: 25px;
+  padding: 14px 40px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .btn-confirm:hover {
-  background-color: #ff5545;
-  transform: scale(1.05);
+  background-color: #ff4435;
+  transform: translateY(-2px);
 }
 
 .btn-confirm:active {
