@@ -4,6 +4,7 @@ import Dashboard from '../views/Dashboard.vue'
 import ProjectCreate from '../views/ProjectCreate.vue'
 import ProjectsView from '../views/ProjectsView.vue'
 import ProjectDetail from '../views/ProjectDetail.vue'
+import TeamManagement from '../views/TeamManagement.vue'
 import Login from '../views/Login.vue'
 import Competences from '../views/Competences.vue'
 import Notes from '../views/Notes.vue'
@@ -38,6 +39,12 @@ const routes = [
     name: 'ProjectDetail',
     component: ProjectDetail,
     meta: { title: 'Détail projet - Memory', requiresAuth: true }
+  },
+  {
+    path: '/team',
+    name: 'TeamManagement',
+    component: TeamManagement,
+    meta: { title: 'Gestion d\'équipe - Memory', requiresAuth: true }
   },
   {
     path: '/competences',
