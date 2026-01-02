@@ -102,17 +102,50 @@ class AuthMiddleware {
     
     /**
      * Middleware optionnel pour les routes publiques avec info utilisateur
-     * 
+     *
      * @return array|null Données utilisateur si authentifié, null sinon
      */
     public static function optionalAuth() {
         $user = self::validateToken();
-        
+
         if ($user) {
             $_SESSION['authenticated_user'] = $user;
         }
-        
+
         return $user;
+    }
+
+    /**
+     * Obtenir l'ID de l'utilisateur actuellement authentifié
+     *
+     * @return int|null ID de l'utilisateur ou null si non authentifié
+     */
+    public static function getCurrentUserId() {
+        if (isset($_SESSION['authenticated_user']['id_User'])) {
+            return (int) $_SESSION['authenticated_user']['id_User'];
+        }
+
+        // Fallback : essayer de valider le token directement
+        $user = self::validateToken();
+        if ($user && isset($user['id_User'])) {
+            return (int) $user['id_User'];
+        }
+
+        return null;
+    }
+
+    /**
+     * Obtenir toutes les données de l'utilisateur actuellement authentifié
+     *
+     * @return array|null Données utilisateur ou null si non authentifié
+     */
+    public static function getCurrentUser() {
+        if (isset($_SESSION['authenticated_user'])) {
+            return $_SESSION['authenticated_user'];
+        }
+
+        // Fallback : valider le token directement
+        return self::validateToken();
     }
 }
 
