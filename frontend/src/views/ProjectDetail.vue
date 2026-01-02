@@ -22,6 +22,9 @@
         <router-link to="/projects/create" class="filter-btn">
           Create
         </router-link>
+        <router-link to="/team" class="filter-btn">
+          Team
+        </router-link>
       </nav>
 
       <div class="sidebar-footer">
@@ -90,14 +93,30 @@
         <router-link to="/projects" class="back-link">← Retour aux projets</router-link>
       </div>
     </main>
+
+    <!-- Assignment Modal -->
+    <AssignmentModal
+      :show="showAssignmentModal"
+      :project-id="Number(project.id_Project || 0)"
+      :project-name="project.Name_Unique || ''"
+      :project-description="project.Description || ''"
+      @success="handleAssignmentSuccess"
+      @cancel="showAssignmentModal = false"
+      @error="handleAssignmentError"
+    />
   </div>
 </template>
 
 <script>
 import { useAuthStore } from '@/stores/auth'
+import AssignmentModal from '@/components/ui/AssignmentModal.vue'
 
 export default {
   name: 'ProjectDetail',
+
+  components: {
+    AssignmentModal
+  },
 
   setup() {
     const authStore = useAuthStore()
@@ -110,7 +129,8 @@ export default {
       allProjects: [],
       loading: true,
       message: '',
-      messageClass: ''
+      messageClass: '',
+      showAssignmentModal: false
     }
   },
   
@@ -218,7 +238,20 @@ export default {
     },
     
     attributeTo() {
-      this.showMessage('Fonctionnalité à venir !', 'info')
+      if (this.project && this.project.id_Project) {
+        this.showAssignmentModal = true
+      } else {
+        this.showMessage('Projet non chargé', 'error')
+      }
+    },
+
+    handleAssignmentSuccess(data) {
+      this.showAssignmentModal = false
+      this.showMessage(data.message, 'success')
+    },
+
+    handleAssignmentError(error) {
+      this.showMessage(error, 'error')
     },
     
     async archiveProject() {
