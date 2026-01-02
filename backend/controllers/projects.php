@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../models/Projects_model.php';
+require_once __DIR__ . '/../models/Manage_model.php';
 require_once __DIR__ . '/../utils/AuthMiddleware.php';
 
 class ProjectsController {
@@ -48,6 +49,30 @@ public function run (){
             return $this->createProject();
         case 'archivate':
             return $this->archiveProject();
+
+        // ========================================
+        // ENDPOINTS D'ATTRIBUTION DE PROJETS
+        // ========================================
+        case 'assign':
+            return $this->assignUser();
+        case 'remove_assignment':
+            return $this->removeAssignment();
+        case 'assignments':
+            $projectId = filter_input(INPUT_GET, 'project_id', FILTER_VALIDATE_INT);
+            return $this->getAssignments($projectId);
+        case 'user_projects':
+            $userId = filter_input(INPUT_GET, 'user_id', FILTER_VALIDATE_INT);
+            $role = filter_input(INPUT_GET, 'role');
+            return $this->getUserProjects($userId, $role);
+        case 'change_role':
+            return $this->changeUserRole();
+        case 'available_users':
+            $projectId = filter_input(INPUT_GET, 'project_id', FILTER_VALIDATE_INT);
+            return $this->getAvailableUsers($projectId);
+        case 'assignment_stats':
+            $projectId = filter_input(INPUT_GET, 'project_id', FILTER_VALIDATE_INT);
+            return $this->getAssignmentStats($projectId);
+
         default:
             return ['error' => 'Invalid action'];
     }
@@ -193,6 +218,252 @@ public function archiveProject()
         }
         
         return ['error' => 'An error occurred while archiving the project'];
+    }
+}
+
+// ========================================
+// MÉTHODES D'ATTRIBUTION DE PROJETS
+// ========================================
+
+/**
+ * Assigner un utilisateur à un projet
+ * POST: user_id, project_id, role
+ */
+public function assignUser()
+{
+    $this->requireAuth();
+
+    // Récupération des données POST
+    $userId = filter_input(INPUT_POST, 'user_id', FILTER_VALIDATE_INT);
+    $projectId = filter_input(INPUT_POST, 'project_id', FILTER_VALIDATE_INT);
+    $role = filter_input(INPUT_POST, 'role');
+    $startDate = filter_input(INPUT_POST, 'start_date');
+
+    // Validation
+    if (!$userId || !$projectId || !$role) {
+        return ['error' => 'Missing required fields: user_id, project_id, role'];
+    }
+
+    // Obtenir l'ID de l'utilisateur authentifié
+    $assignedByUserId = AuthMiddleware::getCurrentUserId();
+
+    try {
+        $model = new Manage_model($this->PDO);
+        $result = $model->assignUserToProject($userId, $projectId, $role, $assignedByUserId, $startDate);
+
+        if ($result === true) {
+            return [
+                'success' => true,
+                'message' => 'User successfully assigned to project',
+                'assignment' => [
+                    'user_id' => $userId,
+                    'project_id' => $projectId,
+                    'role' => $role,
+                    'assigned_date' => date('Y-m-d H:i:s')
+                ]
+            ];
+        } else {
+            return $result; // Retourne l'array avec l'erreur
+        }
+
+    } catch (Exception $e) {
+        error_log('Assignment error: ' . $e->getMessage());
+        return ['error' => 'Failed to assign user to project'];
+    }
+}
+
+/**
+ * Retirer l'assignation d'un utilisateur
+ * POST: user_id, project_id
+ */
+public function removeAssignment()
+{
+    $this->requireAuth();
+
+    $userId = filter_input(INPUT_POST, 'user_id', FILTER_VALIDATE_INT);
+    $projectId = filter_input(INPUT_POST, 'project_id', FILTER_VALIDATE_INT);
+
+    if (!$userId || !$projectId) {
+        return ['error' => 'Missing required fields: user_id, project_id'];
+    }
+
+    $removedByUserId = AuthMiddleware::getCurrentUserId();
+
+    try {
+        $model = new Manage_model($this->PDO);
+        $result = $model->removeAssignment($userId, $projectId, $removedByUserId);
+
+        if ($result === true) {
+            return [
+                'success' => true,
+                'message' => 'Assignment removed successfully',
+                'removed_date' => date('Y-m-d')
+            ];
+        } else {
+            return $result;
+        }
+
+    } catch (Exception $e) {
+        error_log('Remove assignment error: ' . $e->getMessage());
+        return ['error' => 'Failed to remove assignment'];
+    }
+}
+
+/**
+ * Obtenir toutes les assignations d'un projet
+ * GET: project_id
+ */
+public function getAssignments($projectId)
+{
+    $this->requireAuth();
+
+    if (!$projectId) {
+        return ['error' => 'Project ID is required'];
+    }
+
+    try {
+        $model = new Manage_model($this->PDO);
+        $assignments = $model->getProjectAssignments($projectId);
+
+        return [
+            'success' => true,
+            'project_id' => $projectId,
+            'assignments' => $assignments,
+            'total' => count($assignments)
+        ];
+
+    } catch (Exception $e) {
+        error_log('Get assignments error: ' . $e->getMessage());
+        return ['error' => 'Failed to retrieve assignments'];
+    }
+}
+
+/**
+ * Obtenir tous les projets d'un utilisateur
+ * GET: user_id, role (optionnel)
+ */
+public function getUserProjects($userId, $role = null)
+{
+    $this->requireAuth();
+
+    // Si pas d'user_id fourni, utilise l'utilisateur connecté
+    if (!$userId) {
+        $userId = AuthMiddleware::getCurrentUserId();
+    }
+
+    try {
+        $model = new Manage_model($this->PDO);
+        $projects = $model->getUserProjects($userId, $role);
+
+        return [
+            'success' => true,
+            'user_id' => $userId,
+            'role_filter' => $role,
+            'projects' => $projects,
+            'total' => count($projects)
+        ];
+
+    } catch (Exception $e) {
+        error_log('Get user projects error: ' . $e->getMessage());
+        return ['error' => 'Failed to retrieve user projects'];
+    }
+}
+
+/**
+ * Changer le rôle d'un utilisateur dans un projet
+ * POST: user_id, project_id, new_role
+ */
+public function changeUserRole()
+{
+    $this->requireAuth();
+
+    $userId = filter_input(INPUT_POST, 'user_id', FILTER_VALIDATE_INT);
+    $projectId = filter_input(INPUT_POST, 'project_id', FILTER_VALIDATE_INT);
+    $newRole = filter_input(INPUT_POST, 'new_role');
+
+    if (!$userId || !$projectId || !$newRole) {
+        return ['error' => 'Missing required fields: user_id, project_id, new_role'];
+    }
+
+    $changedByUserId = AuthMiddleware::getCurrentUserId();
+
+    try {
+        $model = new Manage_model($this->PDO);
+        $result = $model->changeUserRole($userId, $projectId, $newRole, $changedByUserId);
+
+        if ($result === true) {
+            return [
+                'success' => true,
+                'message' => 'User role changed successfully',
+                'user_id' => $userId,
+                'project_id' => $projectId,
+                'new_role' => $newRole,
+                'changed_date' => date('Y-m-d H:i:s')
+            ];
+        } else {
+            return $result;
+        }
+
+    } catch (Exception $e) {
+        error_log('Change role error: ' . $e->getMessage());
+        return ['error' => 'Failed to change user role'];
+    }
+}
+
+/**
+ * Obtenir les utilisateurs disponibles pour assignation
+ * GET: project_id
+ */
+public function getAvailableUsers($projectId)
+{
+    $this->requireAuth();
+
+    if (!$projectId) {
+        return ['error' => 'Project ID is required'];
+    }
+
+    try {
+        $model = new Manage_model($this->PDO);
+        $users = $model->getAvailableUsers($projectId);
+
+        return [
+            'success' => true,
+            'project_id' => $projectId,
+            'available_users' => $users,
+            'total' => count($users)
+        ];
+
+    } catch (Exception $e) {
+        error_log('Get available users error: ' . $e->getMessage());
+        return ['error' => 'Failed to retrieve available users'];
+    }
+}
+
+/**
+ * Obtenir les statistiques d'attribution d'un projet
+ * GET: project_id
+ */
+public function getAssignmentStats($projectId)
+{
+    $this->requireAuth();
+
+    if (!$projectId) {
+        return ['error' => 'Project ID is required'];
+    }
+
+    try {
+        $model = new Manage_model($this->PDO);
+        $stats = $model->getProjectStats($projectId);
+
+        return [
+            'success' => true,
+            'project_id' => $projectId,
+            'statistics' => $stats
+        ];
+
+    } catch (Exception $e) {
+        error_log('Get assignment stats error: ' . $e->getMessage());
+        return ['error' => 'Failed to retrieve assignment statistics'];
     }
 }
 
