@@ -22,7 +22,14 @@ class Projects_model {
     } 
     public function getProjectById($id)
     {
-        $stmt = $this->PDO->prepare("SELECT * FROM Project WHERE id_Project = :id");
+        $stmt = $this->PDO->prepare("
+            SELECT
+                p.*,
+                c.Name_Unique as Category_Name
+            FROM Project p
+            LEFT JOIN Category c ON p.Category_id_Category = c.id_Category
+            WHERE p.id_Project = :id
+        ");
         $stmt->bindParam(':id', $id);
         $stmt->execute();
         return $stmt->fetch(PDO::FETCH_ASSOC);
