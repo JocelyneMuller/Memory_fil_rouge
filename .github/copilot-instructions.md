@@ -1,80 +1,99 @@
-# Copilot Instructions for Memory
+# Instructions Copilot - Memory Project
 
-## Vue d'ensemble du projet
+## Architecture Overview
+This is a full-stack web application with a PHP backend API and Vue.js frontend, designed to manage project portfolios.
 
-Memory est une application de gestion de notes et de feedbacks pour une équipe de développeurs, composée d'un backend PHP (architecture maison type MVC) et d'un frontend Vue 3 (Vite).
+### Structure
+- **Backend**: PHP REST API with MVC pattern (`backend/`)
+- **Frontend**: Vue 3 + Vite SPA (`frontend/`)
+- **Database**: MySQL with schema defined in `conception/BDD/Script_SQL.sql`
+- **Development**: MAMP local server environment
 
-## Architecture principale
+## Key Patterns & Conventions
 
-- **backend/** : API REST PHP, structure MVC simplifiée
-  - `app/Core/Database.php` : Singleton PDO pour la connexion MySQL (localhost, root/root, base 'Memory')
-  - `app/Core/Router.php` : Routeur maison, routes déclarées dans `public/index.php`
-  - `app/Controllers/` : Contrôleurs (ex : `CompetenceController.php`, `NoteController.php`)
-  - `app/Models/` : Modèles (ex : `Competence.php`, `Note.php`)
-  - `public/index.php` : Point d'entrée, déclare les routes API (`/api/competences`, `/api/notes`, etc.)
-  - **Convention** : Les contrôleurs renvoient du JSON, gèrent les erreurs HTTP, et attendent les données POST/PUT en JSON (pas de formulaire classique).
-- **frontend/** : SPA Vue 3
-  - `src/views/` : Pages principales (Dashboard, Notes, Projects, Skills, Login)
-  - `src/components/` : Composants réutilisables (ex : `NotesList.vue`)
-  - `src/services/api.js` : Service centralisé pour les appels API (fetch, gestion des erreurs, endpoints REST)
-  - `src/router/` : Définition des routes Vue Router
-  - **Convention** : Utilisation de l'alias `@` pour `src/` dans les imports
+### Backend API Structure
+- **Entry point**: `backend/index.php` - Simple router using `?loc=` parameter
+- **Controllers**: Located in `controllers/` - Use dependency injection pattern with PDO
+- **Models**: Located in `models/` - Direct PDO database interaction, no ORM
+- **Routing pattern**: `?loc=projects&action=list&category=web` (GET parameters only)
 
-## Flux de données & intégration
+### Database Conventions
+- Table names: PascalCase (`Project`, `Category`, `Role`)
+- Primary keys: `id_TableName` format (e.g., `id_Project`)
+- Foreign keys: `TableName_id_TableName` format
+- Unique fields: suffix with `_Unique` (e.g., `Name_Unique`)
 
-- Le frontend communique exclusivement avec le backend via fetch/REST (voir `api.js`).
-- Les endpoints sont préfixés par `/api/` et renvoient toujours du JSON.
-- Les opérations CRUD sont exposées pour les entités principales (Compétence, Note, Projet).
-- Les erreurs côté backend sont renvoyées avec un code HTTP approprié et un message JSON (`{ success: false, error: ... }`).
+### Frontend Architecture
+- **Entry component**: `src/App.vue` imports main components
+- **API calls**: Direct fetch() to `http://localhost:8888/PFR/Memory/backend/`
+- **Component structure**: Organized by feature in `components/` subdirectories
+- **No router**: Single page application without Vue Router
 
-## Workflows développeur
+## Development Workflow
 
-- **Démarrage backend** :
-  - Utiliser MAMP (MySQL 8, PHP 8+), base 'Memory' (voir `database/memory_schema.sql` et `memory_seed_data.sql` pour initialisation)
-  - Tester l'API :
-    - `php backend/test_api.php` (teste la connexion DB et le modèle Compétence)
-    - Accès API : `http://localhost/Memory_VF/Memory/backend/public/api/competences`
-- **Démarrage frontend** :
-  - Depuis `frontend/` :
-    - `npm install`
-    - `npm run dev` (Vite)
-    - Accès : `http://localhost:5173` (par défaut)
-- **Tests** :
-  - Pas de framework de test automatisé intégré (tests manuels via scripts PHP ou le frontend)
+### Local Development Setup
+1. **MAMP**: Backend runs on `localhost:8888/PFR/Memory/backend/`
+2. **Vite dev server**: Frontend runs on `localhost:5173`
+3. **Database**: MySQL accessible via MAMP with credentials `root:root`
 
-## Conventions spécifiques
+### Key Commands
+```bash
+# Frontend development
+cd frontend
+npm install
+npm run dev        # Starts Vite dev server
+npm run build      # Production build
 
-- **PHP** :
-  - Les modèles reçoivent la connexion PDO en argument ou via singleton
-  - Les contrôleurs gèrent la sérialisation JSON et les codes HTTP
-  - Les routes sont déclarées explicitement dans `public/index.php`
-- **Vue** :
-  - Les appels API passent par `src/services/api.js` (ne pas dupliquer la logique fetch)
-  - Les vues utilisent `v-model` pour les formulaires, et gèrent les états de chargement/erreur localement
-  - Les routes Vue sont centralisées dans `src/router/index.js`
+# Database setup
+# Import conception/BDD/Script_SQL.sql into MAMP MySQL
+```
 
-## Points d'intégration & dépendances
+### CORS Configuration
+Backend sets specific CORS headers for `localhost:5173` in `index.php`. Update when deploying or changing dev server ports.
 
-- **Frontend** : Vue 3, Vite, vue-router
-- **Backend** : PHP 8+, PDO, MySQL
-- **Base de données** : voir `database/memory_schema.sql` (structure) et `memory_seed_data.sql` (données de test)
+## Code Examples
 
-## Exemples de patterns
+### Adding New API Endpoint
+1. Add case in `backend/controllers/projects.php` `run()` method
+2. Implement method following existing pattern with model injection
+3. Update model in `models/Projects_model.php` with PDO prepared statements
 
-- **Ajout d'une compétence** :
-  - Frontend : POST `/api/competences` via `api.createCompetence({ libelle })`
-  - Backend : `CompetenceController::createCompetence()` → `Competence::create()`
-- **Récupération des notes** :
-  - Frontend : GET `/api/notes` via `api.getNotes()`
-  - Backend : `NoteController::getAllNotes()` → `Note::getAll()`
+### Adding New Vue Component
+- Place in appropriate `components/` subdirectory
+- Import and register in parent component
+- Use composition API or options API consistently with existing code
 
-## Fichiers clés à consulter
+## Recommended Patterns & Best Practices
 
-- `backend/public/index.php` (routes API)
-- `backend/app/Core/Router.php` (routing maison)
-- `frontend/src/services/api.js` (logique d'appel API)
-- `database/memory_schema.sql` (structure DB)
+### Error Handling & Validation
+- **Backend**: Use `Validator` utility class for input sanitization
+- **API Responses**: Standardize with `ApiResponse::success()` and `ApiResponse::error()`
+- **Frontend**: Implement `useApi()` composable for centralized error handling
+- **Security**: Always use prepared statements (already implemented in models)
 
----
+### Component Organization Strategy
+```
+components/
+├── layout/           # Header, Footer, Navigation
+├── ui/              # Reusable components (Button, Modal, Card)
+├── projects/        # Project-specific components
+├── competences/     # Competence management
+└── notes/           # Note-taking features
+```
 
-Pour toute nouvelle fonctionnalité, respecter la séparation frontend/backend, centraliser les accès API côté frontend, et suivre les conventions de sérialisation JSON côté backend.
+### Authentication Architecture (Planned)
+- **JWT + Sessions**: Server-side session storage with JWT tokens
+- **Security**: Implement rate limiting and secure cookie configuration
+- **Authorization**: Role-based access control using existing `Role` table
+
+### Development & Deployment Tools
+- **Build**: Vite (frontend) + Composer (backend dependencies)
+- **CI/CD**: GitHub Actions for automated testing and deployment
+- **Testing**: PHPUnit (backend), Vitest (frontend), Playwright (E2E)
+- **Hosting**: Traditional PHP hosting (OVH/Ionos) for production
+
+## Important Notes
+- Database connection uses hardcoded credentials in `config/database.php` - move to environment variables
+- CORS configured for development - update for production domains
+- Error handling currently minimal - implement centralized error management
+- No authentication system yet - JWT + sessions recommended for this architecture

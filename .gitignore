@@ -1,0 +1,50 @@
+# Local sensitive/restored files (do not push)
+RESTORED_DISCUSSION.md
+RESTORED_CHAT_LOG.md
+RESTORED_CHAT_LOG.md
+RESTORED_DISCUSSION.md
+DOCUMENTATION_ARCHIVAGE_PROJETS.md
+DOCUMENTATION_TECHNIQUE.md
+
+
+
+# Documentation images (heavy files - keep locally for presentations)
+docs/images/*.png
+docs/images/*.jpg
+docs/images/*.jpeg
+
+# Documentation thématique (ne pas pousser)
+docs/01_ARCHITECTURE_GENERALE.md
+docs/02_BACKEND_ARCHIVAGE.md
+docs/03_TESTS_PHPUNIT.md
+docs/04_FRONTEND_INTERFACE.md
+docs/05_PERFORMANCE_SQL.md
+docs/06_PROBLEMES_SOLUTIONS.md
+
+# Fichiers de guide et instructions (ne pas pousser)
+docs/GUIDE_CAPTURES.md
+.github/instructions/comments.instructions.md
+.github/instructions/security.instructions.md
+.github/instructions/sql.instructions.md
+.github/instructions/vue3.instructions.md
+
+# Node/Vite deps
+node_modules/
+
+# PHP/Composer deps
+backend/vendor/
+
+# Build
+dist/
+
+# Editor
+.vscode/
+
+#.env files
+.env
+
+#docs build/
+docs/
+
+# .github 
+.github/
