@@ -1,27 +1,52 @@
 <?php
+require_once __DIR__ . '/Cache_model.php';
 
 class Projects_model {
     private $PDO;
+    private $cache;
 
     public function __construct($PDO)
     {
         $this->PDO = $PDO;
+        $this->cache = new Cache_model();
     }
 
     public function getAllProjects()
     {
+        // Tentative de récupération depuis le cache Redis
+        $cacheKey = 'all_projects';
+        $cachedResult = $this->cache->get($cacheKey);
+
+        if ($cachedResult !== null) {
+            return $cachedResult;
+        }
+
+        // Si pas en cache, exécution de la requête SQL
         $stmt = $this->PDO->prepare("
-            SELECT 
+            SELECT
                 p.*,
                 c.Name_Unique as Category_Name
             FROM Project p
             LEFT JOIN Category c ON p.Category_id_Category = c.id_Category
         ");
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Mise en cache du résultat pour 30 minutes
+        $this->cache->set($cacheKey, $result, 1800);
+
+        return $result;
     } 
     public function getProjectById($id)
     {
+        // Cache spécifique au projet par ID
+        $cacheKey = "project:$id";
+        $cachedResult = $this->cache->get($cacheKey);
+
+        if ($cachedResult !== null) {
+            return $cachedResult;
+        }
+
         $stmt = $this->PDO->prepare("
             SELECT
                 p.*,
@@ -32,7 +57,14 @@ class Projects_model {
         ");
         $stmt->bindParam(':id', $id);
         $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        // Mise en cache pour 1 heure si projet trouvé
+        if ($result) {
+            $this->cache->set($cacheKey, $result, 3600);
+        }
+
+        return $result;
     }
 
     public function getProjectsByCategory($category)
@@ -105,11 +137,15 @@ class Projects_model {
         
         // Exécution de la requête
         if ($stmt->execute()) {
+            // Invalidation du cache après création d'un projet
+            $this->cache->delete('all_projects');
+            $this->cache->invalidateTableCache('Project');
+
             // Succès : retourne l'ID du projet qui vient d'être créé
             // lastInsertId() donne l'ID auto-généré par MySQL
             return $this->PDO->lastInsertId();
         }
-        
+
         // Échec de l'insertion (cas rare)
         return false;
     }
@@ -148,9 +184,14 @@ class Projects_model {
         $stmt->bindParam(':id', $id, PDO::PARAM_INT);
         
         if ($stmt->execute()) {
+            // Invalidation du cache après archivage
+            $this->cache->delete('all_projects');
+            $this->cache->delete("project:$id");
+            $this->cache->invalidateTableCache('Project');
+
             return $stmt->rowCount() > 0;
         }
-        
+
         return false;
     }
 }
